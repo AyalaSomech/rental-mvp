@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UtilityType {
+  electricity
+  water
+  gas
+}
+
+enum ReadingStatus {
+  paid
+  pending
+}
+
+model Property {
+  id        String   @id @default(uuid())
+  name      String
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenants Tenant[]
+  meters  Meter[]
+}
+
+model Tenant {
+  id              String   @id @default(uuid())
+  propertyId      String
+  name            String
+  phone           String
+  email           String
+  apartmentNumber String
+  leaseStartDate  DateTime
+  leaseEndDate    DateTime
+  monthlyRent     Float
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id])
+  readings Reading[]
+}
+
+model Meter {
+  id           String      @id @default(uuid())
+  propertyId   String
+  type         UtilityType
+  serialNumber String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id])
+  readings Reading[]
+
+  @@unique([propertyId, type])
+}
+
+model Reading {
+  id           String        @id @default(uuid())
+  tenantId     String
+  meterId      String
+  type         UtilityType
+  readingValue Float
+  date         DateTime
+  status       ReadingStatus @default(pending)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  meter  Meter  @relation(fields: [meterId], references: [id])
+
+  @@index([tenantId, date])
+}
